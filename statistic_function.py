@@ -133,47 +133,31 @@ def describe_columns(df: pd.DataFrame, selected_column=None):
         return column_descriptions
 
 
-def histogram_numeric(data:str,col:str):
-    plt.figure(figsize=(15, 10))
-    sns.displot(
-        data=data,
-        x=col,
-        height=5,  # Sets the overall height of the plot
-        aspect=1.5,  # Adjusts the aspect ratio for better visibility
-        kde=True,  # Adds a Kernel Density Estimate (smooth curve)
-        bins=30,  # Adjusts the number of bins for histograms
-        color="skyblue",  # Custom color for the plot
-        # kde_kws={"color": "lightgreen", "linewidth": 2}, # Customize KDE curve
-    )
-
-    # Add titles and labels for clarity
-    plt.title(f'Distribution of {col}', fontsize=14)
-    plt.xlabel(f'{col}', fontsize=12)
-    plt.ylabel('Frequency', fontsize=12)
-
-    # Improve tick formatting
-    plt.xticks(fontsize=10)
-    plt.yticks(fontsize=10)
-    # Add grid for better visual appeal
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-
-    # Show the plot
-    plt.show()
-
-def create_histogram(df: pd.DataFrame, column: str):
+def create_histogram(df: pd.DataFrame, column: str, bins: int = 30):
     """
-    Create a histogram for the selected numeric column.
+    Create a histogram or bar plot for the selected column in the DataFrame.
 
     Args:
         df (pd.DataFrame): The DataFrame containing the data.
         column (str): The name of the column to plot the histogram for.
+        bins (int, optional): The number of bins for the histogram. Default is 10.
     """
-    if df[column].dtype in ['int64', 'float64']:
+    # Check if the column is numeric and has more than 10 unique values
+    if df[column].dtype in ['float', 'int', 'int64', 'float64'] and len(df[column].unique()) > 10:
         plt.figure(figsize=(10, 6))
-        plt.hist(df[column].dropna(), bins=30, edgecolor='black', color='skyblue')
+        # If bins is None, use the default number of bins
+        if bins is None:
+            bins = 10  # Set to a default value if None
+        plt.hist(df[column].dropna(), bins=bins, edgecolor='black', color='skyblue')
         plt.title(f'Histogram of {column}')
         plt.xlabel(column)
         plt.ylabel('Frequency')
         st.pyplot(plt)
     else:
-        st.warning(f"The column '{column}' is not numeric, so a histogram cannot be created.")
+        # Handle categorical columns or columns with few unique values
+        plt.figure(figsize=(10, 6))
+        sns.countplot(x=df[column], palette='Blues')
+        plt.title(f'Bar plot of {column}')
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        st.pyplot(plt)
