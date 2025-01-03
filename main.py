@@ -1,62 +1,101 @@
-#import pandas as pd
 import streamlit as st
-#import openpyxl
 import import_data_scripts as ids
-import statistic_function as sf  # Assuming you have this module for additional stats functions
+import statistic_function as sf
 
 def main():
-    st.title('File Upload and Data Reading Example (Local or "raw" file URL)')
+    st.title('Data Import, Statistics and Visualization')
 
     # Choose the data source (Local or URL)
     data_source = st.radio("Choose the data source:", ('Local File', 'URL'))
 
-    # Initialize df as None
     df = None
 
-    # If Local File is selected
     if data_source == 'Local File':
-        path = st.text_input('Enter the file path')
-        file_name = st.text_input('Enter the file name')
-        file_type = st.selectbox('Select file type', ['csv', 'xls', 'xlsx'])
+        uploaded_file = st.file_uploader("Upload your file", type=["csv", "xlsx"])
+        df = ids.uploaded_file_function(uploaded_file)
 
-        # Button to load the local file
-        if st.button('Load Local Data'):
-            if path and file_name:
-                # Read the file using your existing function
-                df = ids.read_data_file(path, file_name, file_type)
-                if df is not None:
-                    st.write(f"Data from {file_name}.{file_type}:")
-                    st.dataframe(df.head(5))  # Show first 5 rows
-                else:
-                    st.error("Failed to load data")
-            else:
-                st.error("Please provide both file path and file name")
-
-    # If URL is selected
     elif data_source == 'URL':
-        url = st.text_input('Enter the "raw" URL of the data file')
+        url = st.text_input('Enter the URL of the data file')
+        if url:
+            df = ids.read_data_file_from_url(url)
 
-        # Button to load the data from URL
-        if st.button('Load Data from URL'):
-            if url:
-                # Read the data from the raw URL using your existing function
-                df = ids.read_data_file_from_url(url)
-                if df is not None:
-                    st.write(f"Data from the file at {url}:")
-                    st.dataframe(df.head(5))  # Show first 5 rows
-                else:
-                    st.error("Failed to load data")
-            else:
-                st.error("Please provide a valid URL")
-
-    # After loading the data, generate and display the overview
     if df is not None:
         # Generate the overview statistics
         overview_stats = sf.overview(df)
-
         # Display the overview in Streamlit
         sf.write_overview_to_st(overview_stats)
+
+        # Numeric and Categorical Columns
+        numeric_columns, categorical_columns = sf.numeric_category(df)
+        # Get the list of columns for selection
+        column_to_describe = st.selectbox("Select a column to see its description", [None] + list(df.columns))
+
+        # Display details for numeric columns
+        # if column_to_describe is None
+        if column_to_describe is None:
+            if (numeric_columns is not None) or (categorical_columns is not None):
+                for column in df.columns:
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        column_desc = sf.describe_columns(df, column)
+
+                        if column_desc is not None:
+                            st.subheader(f"**{column}**")
+                            st.write(f"**Type:** {column_desc['Type']}")
+                            st.write(f"**Unique Values:** {column_desc['Unique Values']}")
+                            st.write(
+                                f"**Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)")
+                            st.write(f"**Sample Data:** {column_desc['Sample Data']}")
+                            if column_desc["Type"] == "Numeric":
+                                st.write(f"**Min:** {column_desc['Min']}")
+                                st.write(f"**Max:** {column_desc['Max']}")
+                                st.write(f"**Mean:** {column_desc['Mean']:.2f}")
+                                st.write(f"**Std Dev:** {column_desc['Std']:.2f}")
+                                st.write(f"**Median:** {column_desc['Median']}")
+                                st.write(f"**25th Percentile:** {column_desc['25th Percentile']}")
+                                st.write(f"**75th Percentile:** {column_desc['75th Percentile']}")
+                            else:
+                                st.write(f"**Mode:** {column_desc['Mode']}")
+                        else:
+                            st.error(f"Column {column} description could not be generated.")
+
+                    with col2:
+                        sf.create_histogram(df, column)
+            else:
+                st.error(f"No Numeric or categorical column are in the data you provided")
+        else:
+            column=column_to_describe
+            col1, col2 = st.columns(2)
+
+            with col1:
+                column_desc = sf.describe_columns(df, column)
+
+                if column_desc is not None:
+                    st.subheader(f"**{column}**")
+                    st.write(f"**Type:** {column_desc['Type']}")
+                    st.write(f"**Unique Values:** {column_desc['Unique Values']}")
+                    st.write(
+                        f"**Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)")
+                    st.write(f"**Sample Data:** {column_desc['Sample Data']}")
+                    if column_desc["Type"] == "Numeric":
+                        st.write(f"**Min:** {column_desc['Min']}")
+                        st.write(f"**Max:** {column_desc['Max']}")
+                        st.write(f"**Mean:** {column_desc['Mean']:.2f}")
+                        st.write(f"**Std Dev:** {column_desc['Std']:.2f}")
+                        st.write(f"**Median:** {column_desc['Median']}")
+                        st.write(f"**25th Percentile:** {column_desc['25th Percentile']}")
+                        st.write(f"**75th Percentile:** {column_desc['75th Percentile']}")
+                    else:
+                        st.write(f"**Mode:** {column_desc['Mode']}")
+                else:
+                    st.error(f"Column {column} description could not be generated.")
+
+            with col2:
+                sf.create_histogram(df, column)
+
+
+
+
 if __name__ == "__main__":
     main()
-
-
