@@ -231,7 +231,7 @@ def create_histogram_(df: pd.DataFrame, column: str, bins: int = 30):
         plt.ylabel('Frequency')
         st.pyplot(plt)
 
-def create_histogram(df: pd.DataFrame, column: str, bins: int = 30, weight=None):
+def create_histogram__(df: pd.DataFrame, column: str, bins: int = 30, weight=None):
     """
     Create a histogram or bar plot for the selected column in the DataFrame.
     If weight is provided, the histogram will be weighted.
@@ -268,6 +268,43 @@ def create_histogram(df: pd.DataFrame, column: str, bins: int = 30, weight=None)
         plt.ylabel('Frequency')
         plt.xticks(rotation=45)
         plt.show()
+def create_histogram(df: pd.DataFrame, column: str, bins: int = 30, weight=None):
+    """
+    Create a histogram or bar plot for the selected column in the DataFrame.
+    If weight is provided, the histogram will be weighted.
+    """
+    # Check if the column is numeric and has more than 10 unique values
+    if df[column].dtype in ['float', 'int', 'int64', 'float64'] and len(df[column].unique()) > 10:
+        plt.figure(figsize=(10, 6))
+        if weight is not None:
+            # Weighted histogram
+            plt.hist(df[column].dropna(), bins=bins, weights=df[weight].dropna(), edgecolor='black', color='skyblue')
+        else:
+            plt.hist(df[column].dropna(), bins=bins, edgecolor='black', color='skyblue')
+        plt.title(f'Histogram of {column}')
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        st.pyplot(plt)
+    else:
+        # Handle categorical columns or columns with few unique values
+        plt.figure(figsize=(10, 6))
+
+        if weight is not None:
+            # Compute weighted counts manually using groupby and sum
+            weighted_counts = df.groupby(column).apply(lambda x: (x[weight].dropna()).sum()).reset_index(name='Count')
+            sns.barplot(x=weighted_counts[column], y=weighted_counts['Count'], color='skyblue')
+            plt.title(f'Weighted Bar Plot of {column}')
+        else:
+            # If no weight is provided, calculate the count of each category and use it for plotting
+            category_counts = df[column].value_counts().reset_index(name='Count')
+            category_counts.columns = [column, 'Count']
+            sns.barplot(x=category_counts[column], y=category_counts['Count'], color='skyblue')
+            plt.title(f'Bar Plot of {column}')
+
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        plt.xticks(rotation=45)
+        st.pyplot(plt)
 
 def weighted_stat(values, weights, stat_type='mean', percentile=None):
     """
@@ -322,3 +359,38 @@ def weighted_stat(values, weights, stat_type='mean', percentile=None):
 
     else:
         raise ValueError("Invalid stat_type or missing percentile for 'percentile' calculation.")
+
+
+def calculate_correlation(df: pd.DataFrame):
+    """
+    Calculates the correlation matrix for the numeric columns in the DataFrame.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing numeric columns.
+
+    Returns:
+        pd.DataFrame: A correlation matrix for numeric columns.
+    """
+    # Calculate the correlation matrix for numeric columns
+    corr_matrix = df.corr()
+    return corr_matrix
+
+
+def plot_heatmap(corr_matrix: pd.DataFrame):
+    """
+    Plots a heatmap of the correlation matrix.
+
+    Args:
+        corr_matrix (pd.DataFrame): The correlation matrix to visualize.
+    """
+    plt.figure(figsize=(10, 8))
+
+    # Create the heatmap using seaborn
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
+
+    # Add title
+    plt.title("Correlation Heatmap", fontsize=16)
+
+    return plt
+
+

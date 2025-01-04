@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import import_data_scripts as ids
 import statistic_function as sf
 
@@ -8,9 +9,6 @@ def main():
     # Choose the data source (Local or URL)
     data_source = st.radio("Choose the data source:", ('Local File', 'URL'))
     # Add the weight option
-    weight_option = st.radio("Do you want to use a weight column?", ("No", "Yes"))
-
-
 
     # Now you can use `weight_column` in your statistics or other logic.
 
@@ -25,9 +23,12 @@ def main():
         if url:
             df = ids.read_data_file_from_url(url)
     # If 'Yes' is selected, ask for the weight column name
+
+    weight_option = st.radio("Do you want to use a weight column?", ("No", "Yes"))
+
     weight_column = None
     if weight_option == "Yes":
-        weight_column = st.selectbox("Enter the name of the weight column:",[None] + list(df.columns))
+        weight_column = st.selectbox("If you want to use a weight calculation, Please enter the name of the weight column:",[None] + list(df.columns))
 
     if df is not None:
         # Generate the overview statistics
@@ -37,8 +38,12 @@ def main():
 
         # Numeric and Categorical Columns
         numeric_columns, categorical_columns = sf.numeric_category(df)
+
+        st.write("---------------------------------------------\n"
+                 " ## Variables")
+        st.write("#### Statistics ")
         # Get the list of columns for selection
-        column_to_describe = st.selectbox("Select a column to see its description", [None] + list(df.columns))
+        column_to_describe = st.selectbox("Select a Variable", [None] + list(df.columns))
 
         # Display details for numeric columns
         # if column_to_describe is None
@@ -78,6 +83,21 @@ def main():
 
             with col2:
                 sf.create_histogram(df, column,bins,weight_column)
+        # Calculate the correlation matrix
+        st.write("---------------------------------------------\n"
+                 " ## Correlation")
+        corr_matrix = sf.calculate_correlation(df[numeric_columns])
+
+        # Create tabs for the correlation table and heatmap
+        tab1, tab2 = st.tabs(["Correlation Table", "Heatmap"])
+
+        with tab1:
+            show_correlation_table(corr_matrix)
+
+        with tab2:
+            plt=sf.plot_heatmap(corr_matrix)
+            st.pyplot(plt)
+
 
 
 
@@ -100,6 +120,15 @@ def streamlit_description(column,column_desc):
         st.table(column_desc["Value Counts"])
 
 
+def show_correlation_table(corr_matrix: pd.DataFrame):
+    """
+    Displays the correlation matrix as a table in Streamlit.
+
+    Args:
+        corr_matrix (pd.DataFrame): The correlation matrix to display.
+    """
+    st.write("### Correlation Matrix")
+    st.dataframe(corr_matrix)
 
 if __name__ == "__main__":
     main()
