@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -78,8 +79,73 @@ def write_overview_to_st(overview_stats):
 
 
 
+def describe_columns(df: pd.DataFrame, selected_column=None, weight=None):
+    """
+    Provides detailed statistics for each column in the DataFrame.
+    For numeric columns: min, max, mean, std, median, percentiles.
+    For categorical columns: mode, unique values, and missing values.
+    If weight is provided, calculations are adjusted by the weight.
+    """
+    column_descriptions = {}
 
-def describe_columns(df: pd.DataFrame, selected_column=None):
+    for column in df.columns:
+        column_desc = {}
+
+        # Check if the column is numeric or categorical
+        if (df[column].dtype in ['float', 'int', 'int64', 'float64']) and (len(df[column].unique()) > 10):
+            column_desc["Type"] = "Numeric"
+        else:
+            column_desc["Type"] = "Categorical"
+
+        column_desc["Unique Values"] = df[column].nunique()
+        column_desc["Missing Values"] = df[column].isnull().sum()
+        column_desc["Missing Values (%)"] = (df[column].isnull().sum() / df.shape[0]) * 100
+        column_desc["Sample Data"] = df[column].head(5).to_list()
+
+        if column_desc["Type"] == "Numeric":
+            if weight is not None:
+                # Weighted calculations
+                column_desc["Min"] = (df[column]).min()
+                column_desc["Max"] = (df[column]).max()
+                #column_desc["Mean"] = df[column].mean()
+                column_desc['weighted'] = weighted_stat(df[column], df[weight], stat_type='mean')
+                column_desc["Std"] = weighted_stat(df[column], df[weight], stat_type='std')
+                column_desc["Median"] = weighted_stat(df[column], df[weight], stat_type='median')
+                column_desc["25th Percentile"] = weighted_stat(df[column], df[weight], stat_type='percentile', percentile=25)
+                column_desc["75th Percentile"] = weighted_stat(df[column], df[weight], stat_type='percentile', percentile=75)
+            else:
+                column_desc["Min"] = df[column].min()
+                column_desc["Max"] = df[column].max()
+                column_desc["Mean"] = df[column].mean()
+                column_desc["Std"] = df[column].std()
+                column_desc["Median"] = df[column].median()
+                column_desc["25th Percentile"] = df[column].quantile(0.25)
+                column_desc["75th Percentile"] = df[column].quantile(0.75)
+        else:
+            # Convert value counts to a DataFrame and display it as a table
+            if weight is not None:
+                weighted_value_counts = df.groupby(column).apply(lambda x: (x[weight]).sum()).reset_index()
+                weighted_value_counts.columns = [column, 'Weighted Count']
+                column_desc["Weighted Value Counts"] = weighted_value_counts.sort_values(column).set_index(column)
+            else:
+                value_counts = df[column].value_counts().reset_index()
+                value_counts.columns = [column, 'Count']
+                column_desc["Value Counts"] = value_counts.sort_values(column).set_index(column)
+
+        # Ensure we always add a description for each column
+        column_descriptions[column] = column_desc
+
+    if selected_column:
+        # If a specific column is selected, return the description for that column
+        if selected_column in column_descriptions:
+            return column_descriptions[selected_column]
+        else:
+            return None  # If the selected column doesn't exist in the dataframe
+    else:
+        # If no column is selected, return the full dictionary of column descriptions
+        return column_descriptions
+
+def describe_columns_(df: pd.DataFrame, selected_column=None):
     """
     Provides detailed statistics for each column in the DataFrame.
     For numeric columns: min, max, mean, std, median, percentiles.
@@ -117,7 +183,10 @@ def describe_columns(df: pd.DataFrame, selected_column=None):
             column_desc["25th Percentile"] = df[column].quantile(0.25)
             column_desc["75th Percentile"] = df[column].quantile(0.75)
         else:
-            column_desc["Mode"] = df[column].mode()[0] if not df[column].mode().empty else None
+            # Convert value counts to a DataFrame and display it as a table
+            value_counts = df[column].value_counts().reset_index()
+            value_counts.columns = [column, 'Count']
+            column_desc["Value Counts"] = value_counts.sort_values(column).set_index(column)
 
         # Ensure we always add a description for each column
         column_descriptions[column] = column_desc
@@ -133,7 +202,7 @@ def describe_columns(df: pd.DataFrame, selected_column=None):
         return column_descriptions
 
 
-def create_histogram(df: pd.DataFrame, column: str, bins: int = 30):
+def create_histogram_(df: pd.DataFrame, column: str, bins: int = 30):
     """
     Create a histogram or bar plot for the selected column in the DataFrame.
 
@@ -156,8 +225,100 @@ def create_histogram(df: pd.DataFrame, column: str, bins: int = 30):
     else:
         # Handle categorical columns or columns with few unique values
         plt.figure(figsize=(10, 6))
-        sns.countplot(x=df[column], palette='Blues')
+        sns.countplot(x=df[column],hue=df[column], palette='Blues',legend=False)
         plt.title(f'Bar plot of {column}')
         plt.xlabel(column)
         plt.ylabel('Frequency')
         st.pyplot(plt)
+
+def create_histogram(df: pd.DataFrame, column: str, bins: int = 30, weight=None):
+    """
+    Create a histogram or bar plot for the selected column in the DataFrame.
+    If weight is provided, the histogram will be weighted.
+    """
+    # Check if the column is numeric and has more than 10 unique values
+    if df[column].dtype in ['float', 'int', 'int64', 'float64'] and len(df[column].unique()) > 10:
+        plt.figure(figsize=(10, 6))
+        if weight is not None:
+            # Weighted histogram
+            plt.hist(df[column].dropna(), bins=bins, weights=df[weight].dropna(), edgecolor='black', color='skyblue')
+        else:
+            plt.hist(df[column].dropna(), bins=bins, edgecolor='black', color='skyblue')
+        plt.title(f'Histogram of {column}')
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        st.pyplot(plt)
+    else:
+        # Handle categorical columns or columns with few unique values
+        plt.figure(figsize=(10, 6))
+
+        if weight is not None:
+            # Compute weighted counts manually using groupby and sum
+            weighted_counts = df.groupby(column).apply(lambda x: (x[weight].dropna()).sum()).reset_index(name='Count')
+            sns.barplot(x=weighted_counts[column], y=weighted_counts['Count'], palette='Blues')
+            plt.title(f'Weighted Bar Plot of {column}')
+        else:
+            # If no weight is provided, calculate the count of each category and use it for plotting
+            category_counts = df[column].value_counts().reset_index(name='Count')
+            category_counts.columns = [column, 'Count']
+            sns.barplot(x=category_counts[column], y=category_counts['Count'], palette='Blues')
+            plt.title(f'Bar Plot of {column}')
+
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        plt.xticks(rotation=45)
+        plt.show()
+
+def weighted_stat(values, weights, stat_type='mean', percentile=None):
+    """
+    Calculate weighted mean, weighted standard deviation, weighted median, or weighted percentiles.
+
+    Parameters:
+    values (array-like): The data values.
+    weights (array-like): The weights corresponding to the values.
+    stat_type (str): The type of statistic to calculate ('mean', 'std', 'median', or 'percentile').
+    percentile (float, optional): The desired percentile (0-100) for weighted percentiles. Used only if stat_type is 'percentile'.
+
+    Returns:
+    float: The computed weighted statistic (mean, std, median, or percentile).
+    """
+    # Convert values and weights to numpy arrays (in case they are not)
+    values = np.array(values)
+    weights = np.array(weights)
+
+    # Weighted Mean
+    if stat_type == 'mean':
+        return np.average(values, weights=weights)
+
+    # Weighted Standard Deviation
+    elif stat_type == 'std':
+        weighted_mean = np.average(values, weights=weights)
+        weighted_variance = np.average((values - weighted_mean) ** 2, weights=weights)
+        return np.sqrt(weighted_variance)
+
+    # Weighted Median
+    elif stat_type == 'median':
+        sorted_indices = np.argsort(values)
+        sorted_values = values[sorted_indices]
+        sorted_weights = weights[sorted_indices]
+
+        cumulative_weights = np.cumsum(sorted_weights)
+        total_weight = np.sum(sorted_weights)
+        median_weight = total_weight / 2
+        median_index = np.searchsorted(cumulative_weights, median_weight)
+        return sorted_values[median_index]
+
+    # Weighted Percentiles
+    elif stat_type == 'percentile' and percentile is not None:
+        sorted_indices = np.argsort(values)
+        sorted_values = values[sorted_indices]
+        sorted_weights = weights[sorted_indices]
+
+        cumulative_weights = np.cumsum(sorted_weights)
+        total_weight = np.sum(sorted_weights)
+        percentile_weight = percentile / 100 * total_weight
+        percentile_index = np.searchsorted(cumulative_weights, percentile_weight)
+        return sorted_values[percentile_index]
+
+    else:
+        raise ValueError("Invalid stat_type or missing percentile for 'percentile' calculation.")

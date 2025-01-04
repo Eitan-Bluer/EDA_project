@@ -7,6 +7,12 @@ def main():
 
     # Choose the data source (Local or URL)
     data_source = st.radio("Choose the data source:", ('Local File', 'URL'))
+    # Add the weight option
+    weight_option = st.radio("Do you want to use a weight column?", ("No", "Yes"))
+
+
+
+    # Now you can use `weight_column` in your statistics or other logic.
 
     df = None
 
@@ -18,7 +24,10 @@ def main():
         url = st.text_input('Enter the URL of the data file please make sure you provide "raw" file URL')
         if url:
             df = ids.read_data_file_from_url(url)
-
+    # If 'Yes' is selected, ask for the weight column name
+    weight_column = None
+    if weight_option == "Yes":
+        weight_column = st.selectbox("Enter the name of the weight column:",[None] + list(df.columns))
 
     if df is not None:
         # Generate the overview statistics
@@ -39,7 +48,7 @@ def main():
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        column_desc = sf.describe_columns(df, column)
+                        column_desc = sf.describe_columns(df, column,weight_column)
 
                         if column_desc is not None:
                             streamlit_description(column, column_desc)
@@ -47,7 +56,7 @@ def main():
                             st.error(f"Column {column} description could not be generated.")
 
                     with col2:
-                        sf.create_histogram(df, column)
+                        sf.create_histogram(df, column,weight_column)
             else:
                 st.error(f"No Numeric or categorical column are in the data you provided")
         else:
@@ -59,7 +68,7 @@ def main():
             col1, col2 = st.columns(2)
 
             with col1:
-                column_desc = sf.describe_columns(df, column)
+                column_desc = sf.describe_columns(df, column,weight_column)
 
                 if column_desc is not None:
                     streamlit_description(column, column_desc)
@@ -68,7 +77,7 @@ def main():
                     st.error(f"Column {column} description could not be generated.")
 
             with col2:
-                sf.create_histogram(df, column,bins)
+                sf.create_histogram(df, column,bins,weight_column)
 
 
 
@@ -87,7 +96,9 @@ def streamlit_description(column,column_desc):
         st.write(f"**25th Percentile:** {column_desc['25th Percentile']}")
         st.write(f"**75th Percentile:** {column_desc['75th Percentile']}")
     else:
-        st.write(f"**Mode:** {column_desc['Mode']}")
+        st.write(f"**Value Counts:**")
+        st.table(column_desc["Value Counts"])
+
 
 
 if __name__ == "__main__":
