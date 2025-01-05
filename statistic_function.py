@@ -121,6 +121,16 @@ def describe_columns(df: pd.DataFrame, selected_column=None, weight=None):
                 column_desc["Median"] = df[column].median()
                 column_desc["25th Percentile"] = df[column].quantile(0.25)
                 column_desc["75th Percentile"] = df[column].quantile(0.75)
+                # Basic Quantile Statistics
+                column_desc["5th Percentile"] = df[column].quantile(0.05)
+                column_desc["Q1"] = df[column].quantile(0.25)
+                column_desc["Q3"] = df[column].quantile(0.75)
+                column_desc["95th Percentile"] = df[column].quantile(0.95)
+                column_desc["Range"] = df[column].max() - df[column].min()
+                # Descriptive Statistics
+                column_desc["Sum"] = df[column].sum()
+                column_desc["Variance"] = df[column].var()
+                column_desc["Kurtosis"] = df[column].kurt()
         else:
             # Convert value counts to a DataFrame and display it as a table
             if weight is not None:
@@ -393,4 +403,30 @@ def plot_heatmap(corr_matrix: pd.DataFrame):
 
     return plt
 
+
+def box_plot_calculation(df: pd.DataFrame, column: str):
+    # Create a Matplotlib figure
+    fig, ax = plt.subplots()
+    sns.boxplot(data=df, y=column, ax=ax)
+    ax.set_title(f"Box Plot of {column}")
+    return fig
+def bar_plot_category(df: pd.DataFrame, category_column: str):
+    """
+    Generates and displays a bar plot for a categorical column using Streamlit.
+
+    Parameters:
+    - df: pd.DataFrame: The DataFrame containing the data.
+    - category_column: str: The categorical column to plot.
+    """
+    # Calculate category counts
+    category_counts = df[category_column].value_counts()
+
+    # Create a Matplotlib figure
+    fig, ax = plt.subplots()
+    sns.barplot(x=category_counts.index, y=category_counts.values, ax=ax)
+    ax.set_title(f"Bar Plot of {category_column}")
+    ax.set_xlabel(category_column)
+    ax.set_ylabel("Count")
+    plt.xticks(rotation=45)  # Rotate x-axis labels if needed
+    return fig
 
