@@ -3,6 +3,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 def numeric_category(df: pd.DataFrame):
     ## Variable types (numeric and categorical)
     numeric_vars = []
@@ -286,6 +288,79 @@ def create_histogram(df: pd.DataFrame, column: str, bins: int = 30, weight=None)
     # Check if the column is numeric and has more than 10 unique values
     if df[column].dtype in ['float', 'int', 'int64', 'float64'] and len(df[column].unique()) > 10:
         plt.figure(figsize=(10, 6))
+
+        plt.hist(df[column].dropna(), bins=bins, edgecolor='black', color='skyblue')
+        plt.title(f'Histogram of {column}')
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        st.pyplot(plt)
+    else:
+        # Handle categorical columns or columns with few unique values
+        plt.figure(figsize=(10, 6))
+
+
+
+        category_counts = df[column].value_counts().reset_index(name='Count')
+        category_counts.columns = [column, 'Count']
+        sns.barplot(x=category_counts[column], y=category_counts['Count'], color='skyblue')
+        plt.title(f'Bar Plot of {column}')
+
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        plt.xticks(rotation=45)
+        st.pyplot(plt)
+
+
+def plot_histogram(data, numeric_var, category_var=None, bins=30, kde=True):
+    """
+    Plots a histogram for a numeric variable, optionally grouped by a categorical variable.
+
+    Parameters:
+    - data (pd.DataFrame): The dataset containing the variables.
+    - numeric_var (str): The name of the numeric variable to plot.
+    - category_var (str, optional): The name of the categorical variable to group by. Default is None.
+    - bins (int): Number of bins for the histogram. Default is 30.
+    - kde (bool): Whether to overlay a density plot on the histogram. Default is True.
+
+    Returns:
+    - None: Displays the plot.
+    """
+    plt.figure(figsize=(10, 6))
+
+    if category_var:
+        sns.histplot(
+            data=data,
+            x=numeric_var,
+            hue=category_var,
+            bins=bins,
+            kde=kde,
+            palette="Set2",
+            alpha=0.6
+        )
+    else:
+        sns.histplot(
+            data=data,
+            x=numeric_var,
+            bins=bins,
+            kde=kde,
+            color="blue",
+            alpha=0.6
+        )
+
+    plt.title(f"Histogram of {numeric_var}" + (f" by {category_var}" if category_var else ""))
+    plt.xlabel(numeric_var)
+    plt.ylabel("Count")
+    plt.grid(True, alpha=0.3)
+    return plt
+
+def create_histogram_weighted(df: pd.DataFrame, column: str, bins: int = 30, weight=None):
+    """
+    Create a histogram or bar plot for the selected column in the DataFrame.
+    If weight is provided, the histogram will be weighted.
+    """
+    # Check if the column is numeric and has more than 10 unique values
+    if df[column].dtype in ['float', 'int', 'int64', 'float64'] and len(df[column].unique()) > 10:
+        plt.figure(figsize=(10, 6))
         if weight is not None:
             # Weighted histogram
             plt.hist(df[column].dropna(), bins=bins, weights=df[weight].dropna(), edgecolor='black', color='skyblue')
@@ -429,4 +504,46 @@ def bar_plot_category(df: pd.DataFrame, category_column: str):
     ax.set_ylabel("Count")
     plt.xticks(rotation=45)  # Rotate x-axis labels if needed
     return fig
+
+
+def scatterplot_with_regression(df, y_col, x_col):
+    """
+    Creates a scatterplot with regression line, and displays R-squared and beta.
+
+    Parameters:
+    - data (pd.DataFrame): The dataset containing the variables.
+
+    Returns:
+    - None: Displays the scatterplot and regression results in Streamlit.
+    """
+
+    if x_col and y_col:
+        # Prepare data
+        df_clean = df[[x_col, y_col]].dropna()
+        x = df_clean[x_col].values.reshape(-1, 1)  # Reshape for sklearn
+        y = df_clean[y_col].values
+
+        # Fit linear regression
+        model = LinearRegression()
+        model.fit(x, y)
+        y_predict = model.predict(x)
+
+        # Calculate beta and R-squared
+        beta = model.coef_[0]
+        r_squared = r2_score(y, y_predict)
+
+        # Display regression metrics
+
+
+        # Plot scatterplot with regression line
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.scatter(x, y, label="Data", alpha=0.7)
+        ax.plot(x, y_predict, color="red", label="Regression Line")
+        ax.set_title(f"Scatterplot of {y_col} vs {x_col}")
+        ax.set_xlabel(x_col)
+        ax.set_ylabel(y_col)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        return fig, beta, r_squared
 

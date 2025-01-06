@@ -4,7 +4,7 @@ import import_data_scripts as ids
 import statistic_function as sf
 
 def main():
-    st.title('Data Import, Statistics and Visualization')
+    st.title('Exploratory Data Analysis (EDA)')
 
     # Choose the data source (Local or URL)
     data_source = st.radio("Choose the data source:", ('Local File', 'URL'))
@@ -99,25 +99,40 @@ def main():
             with col2:
                 #sf.create_histogram(df, column,bins,weight_column)
                 if column in numeric_columns:
-                    tab1, tab2 = st.tabs(["Histogram", "Box plot"])
+                    tab1, tab2, tab3 = st.tabs(["Histogram", "Box plot","Scater_plot"])
                 elif column in categorical_columns:
                     tab1, tab2 = st.tabs(["Bar Plot", "table"])
+                    tab3 = None
 
                 with tab1:
                     if column in numeric_columns:
-                        bins = st.slider('Select number of bins', min_value=5, max_value=50, value=10, step=5)
-                        sf.create_histogram(df, column, bins, weight_column)
+                        bins = st.select_slider('Select number of bins', options=[10, 20, 30, 40, 50],value=10)
+                        category_var=st.selectbox("Select a Category Variable", [None] + categorical_columns)
+
+                        plt=sf.plot_histogram(df, column,category_var, bins)
+                        st.pyplot(plt)
                     elif column in categorical_columns:
                         fig=sf.bar_plot_category(df,column)
                         st.pyplot(fig)
-
-
                 with tab2:
                     if column in numeric_columns:
                         fig=sf.box_plot_calculation(df, column)
                         st.pyplot(fig)
                     elif column in categorical_columns:
                         st.table(column_desc["Value Counts"])
+                if tab3:
+                    with tab3:
+                        st.write("### Scatterplot with Regression")
+                        # Dropdowns to select x and y columns
+                        x_col = st.selectbox("Select X-axis column", options=[col for col in numeric_columns if col != column])
+                        fig, beta, r_squared = sf.scatterplot_with_regression(df, column, x_col)
+                        # Display the plot in Streamlit
+                        # Display regression metrics
+                        st.write(f"**Beta (Slope):** {beta:.4f}")
+                        st.write(f"**R-squared:** {r_squared:.4f}")
+                        st.pyplot(fig)
+
+
 
 
         # Calculate the correlation matrix
@@ -134,6 +149,9 @@ def main():
         with tab2:
             plt=sf.plot_heatmap(corr_matrix)
             st.pyplot(plt)
+
+        st.write("#### Sample ")
+        st.dataframe(df.head(5))
 
 
 
