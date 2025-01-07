@@ -1,81 +1,64 @@
 
-# README
+# EDA Project
 
 ## Overview
-This project is designed to help users analyze and visualize data using Streamlit. It includes functionalities for data import, statistical calculations, and data visualization. The main features are divided into three Python scripts:
 
-1. **`import_data_scripts.py`**: Handles data importing.
-2. **`statistic_function.py`**: Contains statistical and visualization functions.
-3. **`main.py`**: The main Streamlit application.
+The EDA Project is a Streamlit-based application that enables users to perform exploratory data analysis (EDA) with ease. It offers capabilities for data import, statistical analysis, and data visualization, making it an ideal tool for exploring datasets interactively.
 
 ---
 
-## File Descriptions
+## File Structure and Descriptions
 
-### 1. `import_data_scripts.py`
-This script provides functions to read data files from different sources.
+### 1. `main.py`
+The main script of the Streamlit application, integrating functionalities from other modules for an interactive EDA workflow.
 
-#### Functions:
-- **`read_data_file(path, file_name, file_type)`**
-  - Reads a data file from a local path.
-  - Supports CSV and Excel files.
+#### Key Features:
+- **Data Import:**
+  - Upload files via Streamlit or provide a URL to load datasets (CSV/Excel).
+- **Data Overview:**
+  - Displays key dataset statistics such as missing values, duplicates, and column types.
+- **Highlights Detection:**
+  - Identifies:
+    - Highly correlated columns (correlation > 0.8).
+    - Columns with high missing values (>20%).
+    - Columns with high standard deviation (>0.95).
+- **Data Visualization:**
+  - Histograms, bar plots, box plots, scatter plots with regression, and correlation heatmaps.
+- **Column Descriptions:**
+  - Generates detailed statistics for selected columns, including mean, median, range, and value counts.
 
-- **`uploaded_file_function(uploaded_file)`**
-  - Reads a file uploaded via Streamlit.
-
-- **`read_data_file_from_url(url)`**
-  - Reads a data file from a provided URL.
+---
 
 ### 2. `statistic_function.py`
-This script includes functions for analyzing and visualizing data.
+Provides core statistical analysis and visualization functions.
 
 #### Functions:
-- **`numeric_category(df)`**
-  - Classifies columns into numeric and categorical types.
+- **Data Classification:**
+  - `numeric_category(df)` separates columns into numeric and categorical types.
+- **Overview:**
+  - `overview(df)` generates a summary of the dataset, including variables, observations, missing values, and duplicates.
+  - `write_overview_to_st(overview_stats)` displays the overview in Streamlit.
+- **Column Descriptions:**
+  - `describe_columns(df, selected_column=None)` provides detailed statistics for columns.
+- **Visualization:**
+  - `create_histogram(df, column, bins=30)` creates histograms for numeric data or bar plots for categorical data.
+  - `box_plot_calculation(df, column, category=None)` generates box plots for numeric columns, optionally grouped by categories.
+  - `bar_plot_category(df, category_column)` creates bar plots for categorical columns.
+  - `scatterplot_with_regression(df, y_col, x_col)` produces scatter plots with regression lines and calculates R² and slope.
+  - `plot_heatmap(corr_matrix)` visualizes the correlation matrix as a heatmap.
+- **Correlation:**
+  - `calculate_correlation(df)` computes the correlation matrix for numeric columns.
 
-- **`overview(df)`**
-  - Generates a summary of the DataFrame, including missing values, duplicates, and column types.
+---
 
-- **`write_overview_to_st(overview_stats)`**
-  - Displays the DataFrame overview in the Streamlit app.
+### 3. `import_data_scripts.py`
+Handles data importing from local files, URLs, or file uploads.
 
-- **`describe_columns(df, selected_column=None, weight=None)`**
-  - Provides detailed statistics for each column.
-
-- **`create_histogram(df, column, bins=30, weight=None)`**
-  - Creates a histogram for numeric data or a bar plot for categorical data.
-
-- **`calculate_correlation(df)`**
-  - Computes the correlation matrix for numeric columns.
-
-- **`plot_heatmap(corr_matrix)`**
-  - Visualizes the correlation matrix using a heatmap.
-
-- **`box_plot_calculation(df, column)`**
-  - Generates a box plot for a numeric column.
-
-- **`bar_plot_category(df, category_column)`**
-  - Generates a bar plot for a categorical column.
-
-### 3. `main.py`
-This is the entry point of the Streamlit application. It integrates the functions from the other scripts to provide an interactive interface for users.
-
-#### Features:
-- Data Import:
-  - Upload files via Streamlit.
-  - Import files from a URL.
-
-- Data Overview:
-  - Display statistics like missing values, numeric/categorical column counts, and duplicate rows.
-
-- Column Highlights:
-  - Identify columns with high correlation, missing values, or high standard deviation.
-
-- Data Visualization:
-  - Histograms and bar plots for selected columns.
-  - Correlation matrix and heatmap.
-
-- Integration with `statistic_function.py` for detailed column analysis and visualization.
+#### Functions:
+- **File Import:**
+  - `read_data_file(path, file_name, file_type)` reads a file from a specified local path (CSV/Excel).
+  - `uploaded_file_function(uploaded_file)` handles file uploads via Streamlit.
+  - `read_data_file_from_url(url)` imports data from a URL (supports CSV/Excel).
 
 ---
 
@@ -85,7 +68,7 @@ This project uses Poetry for dependency management.
 
 1. Clone this repository:
    ```bash
-   git clone <repository_url>
+   https://github.com/Eitan-Bluer/EDA_project.git
    ```
 
 2. Install Poetry if not already installed:
@@ -103,54 +86,78 @@ This project uses Poetry for dependency management.
    poetry run streamlit run main.py
    ```
 
+### Prerequisites
+- Python 3.12 or higher
+
+### Steps
+1. Clone the repository:
+   ```bash
+   git clone <repository_url>
+   cd eda-project
+   ```
+
+2. Install dependencies using Poetry:
+   ```bash
+   pip install poetry
+   poetry install
+   ```
+
+3. Run the application:
+   ```bash
+   poetry run streamlit run main.py
+   ```
+
 ---
 
 ## Usage
 
-1. Open the app in your browser (Streamlit provides the local URL).
-2. Upload a file or provide a URL to load your dataset.
-3. Explore the dataset through the following features:
-   - View an overview of the data.
-   - Analyze specific columns for missing values, correlation, and statistical details.
-   - Generate visualizations like histograms, bar plots, box plots, and heatmaps.
+1. Launch the Streamlit app.
+2. Choose a data source:
+   - **Local File**: Upload a CSV or Excel file.
+   - **URL**: Provide a direct link to a dataset (CSV/Excel).
+3. Analyze the dataset:
+   - View a statistical overview of the dataset.
+   - Explore individual columns for missing values, descriptive statistics, and visualizations.
+4. Visualize correlations and relationships:
+   - Generate heatmaps, scatter plots, and other visualizations to uncover patterns in the data.
 
 ---
 
-## Example
+## Example Workflow
 
-### File Upload Example:
+### Scenario 1: File Upload
 1. Select "Local File" as the data source.
-2. Upload a CSV or Excel file.
-3. View statistics and generate visualizations for the uploaded dataset.
+2. Upload your dataset (CSV/Excel).
+3. View an overview of the dataset, including missing values and column types.
+4. Analyze specific columns or generate plots.
 
-### URL Example:
+### Scenario 2: URL Data Source
 1. Select "URL" as the data source.
-2. Paste the URL of a CSV or Excel file.
-3. Explore the dataset interactively.
-
----
-
-## Highlights Detection
-The `highlight_columns` function in `main.py` identifies columns with:
-- **High Correlation**: Correlation > 0.8 with other columns.
-- **Missing Values**: More than 20% missing data.
-- **High Standard Deviation**: Standard deviation > 0.95.
+2. Enter a direct URL to a dataset.
+3. Perform the same analysis and visualizations as with uploaded files.
 
 ---
 
 ## Dependencies
-- Python 3.12
-- Streamlit 1.41.1
-- Pandas 2.2.3
-- Seaborn 0.13.2
-- OpenPyXL 3.1.5
+
+This project relies on the following Python packages:
+
+- **Streamlit**: Interactive web application framework (`^1.41.1`)
+- **Pandas**: Data manipulation and analysis (`^2.2.3`)
+- **Seaborn**: Statistical data visualization (`^0.13.2`)
+- **Matplotlib**: General-purpose plotting library (`^3.10.0`)
+- **Numpy**: Numerical computations (`^2.2.1`)
+- **Scikit-learn**: Machine learning utilities (`^1.6.0`)
+- **Statsmodels**: Advanced statistical modeling (`^0.14.4`)
+- **OpenPyXL**: Excel file handling (`^3.1.5`)
+
+All dependencies are listed in `pyproject.toml` for seamless installation via Poetry.
 
 ---
 
 ## License
-This project is licensed under the MIT License. See the LICENSE file for details.
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ---
 
-## Contributing
-Feel free to submit issues and pull requests for improvements or new features.
