@@ -3,14 +3,126 @@ import pandas as pd
 import import_data_scripts as ids
 import statistic_function as sf
 
+
+def streamlit_description_base(column,column_desc):
+    st.subheader(f"**{column}**")
+    st.write(f"""
+    **Type:** {column_desc['Type']} (data type: {column_desc["DataType"]})  
+    **Unique Values:** {column_desc['Unique Values']}  
+    **Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)""")
+    if column_desc["Type"] == "Numeric":
+        st.write(f"""
+        **Min:** {column_desc['Min']}  
+        **Max:** {column_desc['Max']}  
+        **Mean:** {column_desc['Mean']:.2f}  
+        **Std Dev:** {column_desc['Std']:.2f}  
+        **Median:** {column_desc['Median']}  
+        **25th Percentile:** {column_desc['25th Percentile']}  
+        **75th Percentile:** {column_desc['75th Percentile']}  
+        """)
+    else:
+        st.write(f"**Value Counts:**")
+        if len(column_desc["Value Counts"])>15:
+           st.write("The number of categories exceeds 15. The categories can be seen in the focused analysis of the variable. ")
+        else:
+            st.table(column_desc["Value Counts"])
+
+def streamlit_description_statistics(column,column_desc):
+    st.subheader(f"**{column}**")
+    st.write(f"""
+    **Type:** {column_desc['Type']} (data type: {column_desc["DataType"]})  
+    **Unique Values:** {column_desc['Unique Values']}  
+    **Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)""")
+    if column_desc["Type"] == "Numeric":
+        st.write(f"""
+        **Min:** {column_desc['Min']}  
+        **Max:** {column_desc['Max']}  
+        **Sum:** {column_desc['Sum']:.2f}  
+        **Mean:** {column_desc['Mean']:.2f}  
+        **Variance:** {column_desc['Variance']:.2f}  
+        **Std Dev:** {column_desc['Std']:.2f}  
+        **Median:** {column_desc['Median']}  
+        **25th Percentile:** {column_desc['25th Percentile']}  
+        **75th Percentile:** {column_desc['75th Percentile']}  
+        **95th Percentile:** {column_desc['95th Percentile']}  
+        **Range:** {column_desc['Range']}  
+        """)
+    else:
+        st.write(f"**Value Counts: see tab table**")
+        #st.table(column_desc["Value Counts"])
+
+
+def show_correlation_table(corr_matrix: pd.DataFrame):
+    """
+    Displays the correlation matrix as a table in Streamlit.
+
+    Args:
+        corr_matrix (pd.DataFrame): The correlation matrix to display.
+    """
+    st.write("### Correlation Matrix")
+    st.dataframe(corr_matrix)
+
+
+import pandas as pd
+
+
+def highlight_columns(df: pd.DataFrame,numeric, corr_threshold: float = 0.8, missing_threshold: float = 20,
+                      std_threshold: float = 0.95):
+    """
+    Analyzes the DataFrame for highlights based on correlation, missing values, and standard deviation.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        corr_threshold (float): The threshold for high correlation.
+        missing_threshold (float): The percentage threshold for missing values.
+        std_threshold (float): The threshold for high standard deviation.
+
+    Returns:
+        dict: A dictionary containing highlights for each column.
+    """
+    highlights = {}
+    corr_matrix= None
+    # Calculate correlation matrix
+    if numeric is not None:
+        corr_matrix = df[numeric].corr()
+
+    # Iterate over columns
+    for col in df.columns:
+        column_highlights = {}
+
+        # Check for high correlation
+        if corr_matrix is not None:
+            if col in corr_matrix.columns:
+                correlated_cols = corr_matrix[col][
+                    (corr_matrix[col] > corr_threshold) & (corr_matrix[col] < 1.0)].index.tolist()
+                if correlated_cols:
+                    column_highlights['Highly Correlated Columns'] = correlated_cols
+
+        # Check for missing values
+        missing_percentage = df[col].isnull().mean() * 100
+        if missing_percentage > missing_threshold:
+            column_highlights['Missing Percentage'] = f"{missing_percentage:.2f}%"
+
+        # Check for high standard deviation
+        if pd.api.types.is_numeric_dtype(df[col]):
+            std_dev = df[col].std()
+            if std_dev > std_threshold:
+                column_highlights['Standard Deviation'] = std_dev
+
+        # Add to highlights if any conditions are met
+        if column_highlights:
+            highlights[col] = column_highlights
+
+    return highlights
+
+
 def main():
     st.title('Exploratory Data Analysis (EDA)')
 
     # Choose the data source (Local or URL)
-    data_source = st.radio("Choose the data source:", ('Local File', 'URL'))
-    # Add the weight option
 
-    # Now you can use `weight_column` in your statistics or other logic.
+    data_source = st.radio("Choose the data source:", ('Local File', 'URL'))
+
 
     df = None
 
@@ -22,13 +134,6 @@ def main():
         url = st.text_input('Enter the URL of the data file please make sure you provide "raw" file URL')
         if url:
             df = ids.read_data_file_from_url(url)
-    # If 'Yes' is selected, ask for the weight column name
-
-    weight_option = st.radio("Do you want to use a weight column?", ("No", "Yes"))
-
-    weight_column = None
-    if weight_option == "Yes":
-        weight_column = st.selectbox("If you want to use a weight calculation, Please enter the name of the weight column:",[None] + list(df.columns))
 
     if df is not None:
         # Numeric and Categorical Columns
@@ -159,115 +264,6 @@ def main():
         st.dataframe(df.head(5))
 
 
-
-
-def streamlit_description_base(column,column_desc):
-    st.subheader(f"**{column}**")
-    st.write(f"""
-    **Type:** {column_desc['Type']} (data type: {column_desc["DataType"]})  
-    **Unique Values:** {column_desc['Unique Values']}  
-    **Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)""")
-    if column_desc["Type"] == "Numeric":
-        st.write(f"""
-        **Min:** {column_desc['Min']}  
-        **Max:** {column_desc['Max']}  
-        **Mean:** {column_desc['Mean']:.2f}  
-        **Std Dev:** {column_desc['Std']:.2f}  
-        **Median:** {column_desc['Median']}  
-        **25th Percentile:** {column_desc['25th Percentile']}  
-        **75th Percentile:** {column_desc['75th Percentile']}  
-        """)
-    else:
-        st.write(f"**Value Counts:**")
-        st.table(column_desc["Value Counts"])
-
-def streamlit_description_statistics(column,column_desc):
-    st.subheader(f"**{column}**")
-    st.write(f"""
-    **Type:** {column_desc['Type']} (data type: {column_desc["DataType"]})  
-    **Unique Values:** {column_desc['Unique Values']}  
-    **Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)""")
-    if column_desc["Type"] == "Numeric":
-        st.write(f"""
-        **Min:** {column_desc['Min']}  
-        **Max:** {column_desc['Max']}  
-        **Sum:** {column_desc['Sum']:.2f}  
-        **Mean:** {column_desc['Mean']:.2f}  
-        **Variance:** {column_desc['Variance']:.2f}  
-        **Std Dev:** {column_desc['Std']:.2f}  
-        **Median:** {column_desc['Median']}  
-        **25th Percentile:** {column_desc['25th Percentile']}  
-        **75th Percentile:** {column_desc['75th Percentile']}  
-        **95th Percentile:** {column_desc['95th Percentile']}  
-        **Range:** {column_desc['Range']}  
-        """)
-    else:
-        st.write(f"**Value Counts: see tab table**")
-        #st.table(column_desc["Value Counts"])
-
-
-def show_correlation_table(corr_matrix: pd.DataFrame):
-    """
-    Displays the correlation matrix as a table in Streamlit.
-
-    Args:
-        corr_matrix (pd.DataFrame): The correlation matrix to display.
-    """
-    st.write("### Correlation Matrix")
-    st.dataframe(corr_matrix)
-
-
-import pandas as pd
-
-
-def highlight_columns(df: pd.DataFrame,numeric, corr_threshold: float = 0.8, missing_threshold: float = 20,
-                      std_threshold: float = 0.95):
-    """
-    Analyzes the DataFrame for highlights based on correlation, missing values, and standard deviation.
-
-    Args:
-        df (pd.DataFrame): The input DataFrame.
-        corr_threshold (float): The threshold for high correlation.
-        missing_threshold (float): The percentage threshold for missing values.
-        std_threshold (float): The threshold for high standard deviation.
-
-    Returns:
-        dict: A dictionary containing highlights for each column.
-    """
-    highlights = {}
-    corr_matrix= None
-    # Calculate correlation matrix
-    if numeric is not None:
-        corr_matrix = df[numeric].corr()
-
-    # Iterate over columns
-    for col in df.columns:
-        column_highlights = {}
-
-        # Check for high correlation
-        if corr_matrix is not None:
-            if col in corr_matrix.columns:
-                correlated_cols = corr_matrix[col][
-                    (corr_matrix[col] > corr_threshold) & (corr_matrix[col] < 1.0)].index.tolist()
-                if correlated_cols:
-                    column_highlights['Highly Correlated Columns'] = correlated_cols
-
-        # Check for missing values
-        missing_percentage = df[col].isnull().mean() * 100
-        if missing_percentage > missing_threshold:
-            column_highlights['Missing Percentage'] = f"{missing_percentage:.2f}%"
-
-        # Check for high standard deviation
-        if pd.api.types.is_numeric_dtype(df[col]):
-            std_dev = df[col].std()
-            if std_dev > std_threshold:
-                column_highlights['Standard Deviation'] = std_dev
-
-        # Add to highlights if any conditions are met
-        if column_highlights:
-            highlights[col] = column_highlights
-
-    return highlights
 
 
 if __name__ == "__main__":

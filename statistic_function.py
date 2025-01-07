@@ -135,6 +135,7 @@ def describe_columns(df: pd.DataFrame, selected_column=None):
         else:
             value_counts = df[column].value_counts().reset_index()
             value_counts.columns = [column, 'Count']
+
             column_desc["Value Counts"] = value_counts.sort_values(column).set_index(column)
 
         # Ensure we always add a description for each column
@@ -180,7 +181,7 @@ def create_histogram_(df: pd.DataFrame, column: str, bins: int = 30):
         plt.ylabel('Frequency')
         st.pyplot(plt)
 
-def create_histogram(df: pd.DataFrame, column: str, bins: int = 30):
+def create_histogram__(df: pd.DataFrame, column: str, bins: int = 30):
     """
     Create a histogram or bar plot for the selected column in the DataFrame.
     If weight is provided, the histogram will be weighted.
@@ -209,6 +210,27 @@ def create_histogram(df: pd.DataFrame, column: str, bins: int = 30):
         plt.ylabel('Frequency')
         plt.xticks(rotation=45)
         st.pyplot(plt)
+
+def create_histogram(df: pd.DataFrame, column: str, bins: int = 30):
+    try:
+        if pd.api.types.is_numeric_dtype(df[column]):
+            plt.figure(figsize=(10, 6))
+            plt.hist(df[column].dropna(), bins=bins, edgecolor='black', color='skyblue')
+            plt.title(f'Histogram of {column}')
+            plt.xlabel(column)
+            plt.ylabel('Frequency')
+        else:
+            # Handle categorical columns or mixed data
+            category_counts = df[column].value_counts().reset_index(name='Count')
+            category_counts.columns = [column, 'Count']
+            sns.barplot(x=category_counts[column], y=category_counts['Count'], color='skyblue')
+            plt.title(f'Bar Plot of {column}')
+            plt.xlabel(column)
+            plt.ylabel('Frequency')
+            plt.xticks(rotation=45)
+        st.pyplot(plt)
+    except Exception as e:
+        st.error(f"Error creating plot for {column}: {e}")
 
 
 def plot_histogram(data, numeric_var, category_var=None, bins=30, kde=True):
