@@ -43,15 +43,19 @@ def main():
             # Detect highlights
             st.write("### Column Highlights")
             highlights = highlight_columns(df,numeric_columns)
-
-            if highlights:
-                for col, details in highlights.items():
-                    st.write(f"**Column: {col}**")
-                    for key, value in details.items():
-                        st.write(f"- {key}: {value}")
-                    st.write("---")
-            else:
-                st.write("No highlights found based on the given thresholds.")
+            # Toggle highlights visibility
+            st.session_state.show_highlights = st.session_state.get("show_highlights", False)
+            if st.button("Show highlights" if not st.session_state.show_highlights else "Hide highlights"):
+                st.session_state.show_highlights = not st.session_state.show_highlights
+            if st.session_state.show_highlights:
+                if  highlights:
+                    for col, details in highlights.items():
+                        st.write(f"**Column: {col}**")
+                        for key, value in details.items():
+                            st.write(f"- {key}: {value}")
+                        st.write("---")
+                else:
+                    st.write("No highlights found based on the given thresholds.")
 
         # Numeric and Categorical Columns
         #numeric_columns, categorical_columns = sf.numeric_category(df)
@@ -70,7 +74,7 @@ def main():
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        column_desc = sf.describe_columns(df, column,weight_column)
+                        column_desc = sf.describe_columns(df, column)
 
                         if column_desc is not None:
                             streamlit_description_base(column, column_desc)
@@ -78,7 +82,7 @@ def main():
                             st.error(f"Column {column} description could not be generated.")
 
                     with col2:
-                        sf.create_histogram(df, column,weight_column)
+                        sf.create_histogram(df, column)
             else:
                 st.error(f"No Numeric or categorical column are in the data you provided")
         else:
@@ -88,7 +92,7 @@ def main():
             col1, col2 = st.columns(2)
 
             with col1:
-                column_desc = sf.describe_columns(df, column,weight_column)
+                column_desc = sf.describe_columns(df, column)
 
                 if column_desc is not None:
                     streamlit_description_statistics(column, column_desc)
@@ -116,7 +120,8 @@ def main():
                         st.pyplot(fig)
                 with tab2:
                     if column in numeric_columns:
-                        fig=sf.box_plot_calculation(df, column)
+                        category_var_bp = st.selectbox("Select a Category Variable to box plot", [None] + categorical_columns)
+                        fig=sf.box_plot_calculation(df, column,category_var_bp)
                         st.pyplot(fig)
                     elif column in categorical_columns:
                         st.table(column_desc["Value Counts"])
@@ -128,8 +133,8 @@ def main():
                         fig, beta, r_squared = sf.scatterplot_with_regression(df, column, x_col)
                         # Display the plot in Streamlit
                         # Display regression metrics
-                        st.write(f"**Beta (Slope):** {beta:.4f}")
-                        st.write(f"**R-squared:** {r_squared:.4f}")
+                        st.write(f"**Beta (Slope):** {beta:.4f} **R-squared:** {r_squared:.4f}")
+
                         st.pyplot(fig)
 
 
@@ -158,43 +163,47 @@ def main():
 
 def streamlit_description_base(column,column_desc):
     st.subheader(f"**{column}**")
-    st.write(f"**Type:** {column_desc['Type']}")
-    st.write(f"**Unique Values:** {column_desc['Unique Values']}")
-    st.write(
-        f"**Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)")
+    st.write(f"""
+    **Type:** {column_desc['Type']} (data type: {column_desc["DataType"]})  
+    **Unique Values:** {column_desc['Unique Values']}  
+    **Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)""")
     if column_desc["Type"] == "Numeric":
-        st.write(f"**Min:** {column_desc['Min']}")
-        st.write(f"**Max:** {column_desc['Max']}")
-        st.write(f"**Mean:** {column_desc['Mean']:.2f}")
-        st.write(f"**Std Dev:** {column_desc['Std']:.2f}")
-        st.write(f"**Median:** {column_desc['Median']}")
-        st.write(f"**25th Percentile:** {column_desc['25th Percentile']}")
-        st.write(f"**75th Percentile:** {column_desc['75th Percentile']}")
+        st.write(f"""
+        **Min:** {column_desc['Min']}  
+        **Max:** {column_desc['Max']}  
+        **Mean:** {column_desc['Mean']:.2f}  
+        **Std Dev:** {column_desc['Std']:.2f}  
+        **Median:** {column_desc['Median']}  
+        **25th Percentile:** {column_desc['25th Percentile']}  
+        **75th Percentile:** {column_desc['75th Percentile']}  
+        """)
     else:
         st.write(f"**Value Counts:**")
         st.table(column_desc["Value Counts"])
 
 def streamlit_description_statistics(column,column_desc):
     st.subheader(f"**{column}**")
-    st.write(f"**Type:** {column_desc['Type']}")
-    st.write(f"**Unique Values:** {column_desc['Unique Values']}")
-    st.write(
-        f"**Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)")
+    st.write(f"""
+    **Type:** {column_desc['Type']} (data type: {column_desc["DataType"]})  
+    **Unique Values:** {column_desc['Unique Values']}  
+    **Missing Values:** {column_desc['Missing Values']} ({column_desc['Missing Values (%)']:.2f}%)""")
     if column_desc["Type"] == "Numeric":
-        st.write(f"**Min:** {column_desc['Min']}")
-        st.write(f"**Max:** {column_desc['Max']}")
-        st.write(f"**Sum:** {column_desc['Sum']:.2f}")
-        st.write(f"**Mean:** {column_desc['Mean']:.2f}")
-        st.write(f"**Variance:** {column_desc['Variance']:.2f}")
-        st.write(f"**Std Dev:** {column_desc['Std']:.2f}")
-        st.write(f"**Median:** {column_desc['Median']}")
-        st.write(f"**25th Percentile:** {column_desc['25th Percentile']}")
-        st.write(f"**75th Percentile:** {column_desc['75th Percentile']}")
-        st.write(f"**95th Percentile:** {column_desc['95th Percentile']}")
-        st.write(f"**Range:** {column_desc['Range']}")
+        st.write(f"""
+        **Min:** {column_desc['Min']}  
+        **Max:** {column_desc['Max']}  
+        **Sum:** {column_desc['Sum']:.2f}  
+        **Mean:** {column_desc['Mean']:.2f}  
+        **Variance:** {column_desc['Variance']:.2f}  
+        **Std Dev:** {column_desc['Std']:.2f}  
+        **Median:** {column_desc['Median']}  
+        **25th Percentile:** {column_desc['25th Percentile']}  
+        **75th Percentile:** {column_desc['75th Percentile']}  
+        **95th Percentile:** {column_desc['95th Percentile']}  
+        **Range:** {column_desc['Range']}  
+        """)
     else:
-        st.write(f"**Value Counts:**")
-        st.table(column_desc["Value Counts"])
+        st.write(f"**Value Counts: see tab table**")
+        #st.table(column_desc["Value Counts"])
 
 
 def show_correlation_table(corr_matrix: pd.DataFrame):
