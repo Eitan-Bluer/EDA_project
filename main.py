@@ -6,7 +6,10 @@ import import_data_scripts as ids
 import main_with_weight as mww
 import main_unweighted as mu
 def main():
+
     st.title('Exploratory Data Analysis (EDA)')
+    st.image("https://raw.githubusercontent.com/Eitan-Bluer/EDA_project/main/threekindsoflies.jpg",
+             width=500)
     data_source = st.radio("Choose the data source:", ('Local File', 'URL'))
     df = None
 
