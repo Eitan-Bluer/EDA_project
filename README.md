@@ -5,6 +5,8 @@
 
 The EDA Project is a Streamlit-based application designed for interactive exploratory data analysis (EDA). It allows users to analyze datasets with or without weights, providing capabilities for data import, statistical analysis, and visualization.
 
+# streamlit link
+https://edaproject-nw83a9ftjfworft9amo6jr.streamlit.app/
 ---
 
 ## File Structure and Descriptions
