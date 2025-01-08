@@ -33,10 +33,89 @@ def describe_columns_weight(df: pd.DataFrame, selected_column=None, weight=None)
         if column_desc["Type"] == "Numeric":
             if weight is not None:
                 # Weighted calculations
+                column_desc["Min"] = df[column].min()
+                column_desc["Max"] = df[column].max()
+                column_desc["Mean"] = weighted_stat(df[column], df[weight], stat_type='mean')
+                column_desc["Std"] = weighted_stat(df[column], df[weight], stat_type='std')
+                column_desc["Median"] = weighted_stat(df[column], df[weight], stat_type='median')
+                column_desc["25th Percentile"] = weighted_stat(df[column], df[weight], stat_type='percentile', percentile=25)
+                column_desc["75th Percentile"] = weighted_stat(df[column], df[weight], stat_type='percentile', percentile=75)
+                column_desc["5th Percentile"] = weighted_stat(df[column], df[weight], stat_type='percentile', percentile=5)
+                column_desc["95th Percentile"] = weighted_stat(df[column], df[weight], stat_type='percentile', percentile=95)
+                column_desc["Range"] = column_desc["Max"] - column_desc["Min"]
+                column_desc["Sum"] = (df[column] * df[weight]).sum()
+                column_desc["Variance"] = weighted_stat(df[column], df[weight], stat_type='std') ** 2
+                column_desc["Kurtosis"] = df[column].kurt()
+            else:
+                # Standard calculations
+                column_desc["Min"] = df[column].min()
+                column_desc["Max"] = df[column].max()
+                column_desc["Mean"] = df[column].mean()
+                column_desc["Std"] = df[column].std()
+                column_desc["Median"] = df[column].median()
+                column_desc["25th Percentile"] = df[column].quantile(0.25)
+                column_desc["75th Percentile"] = df[column].quantile(0.75)
+                column_desc["5th Percentile"] = df[column].quantile(0.05)
+                column_desc["95th Percentile"] = df[column].quantile(0.95)
+                column_desc["Range"] = df[column].max() - df[column].min()
+                column_desc["Sum"] = df[column].sum()
+                column_desc["Variance"] = df[column].var()
+                column_desc["Kurtosis"] = df[column].kurt()
+        else:
+            # Categorical column handling
+            if weight is not None:
+                weighted_value_counts = df.groupby(column).apply(lambda x: x[weight].sum()).reset_index()
+                weighted_value_counts.columns = [column, 'Weighted Count']
+                column_desc["Value Counts"] = weighted_value_counts.sort_values(column).set_index(column)
+            else:
+                value_counts = df[column].value_counts().reset_index()
+                value_counts.columns = [column, 'Count']
+                column_desc["Value Counts"] = value_counts.sort_values(column).set_index(column)
+
+        # Ensure we always add a description for each column
+        column_descriptions[column] = column_desc
+
+    if selected_column:
+        # If a specific column is selected, return the description for that column
+        if selected_column in column_descriptions:
+            return column_descriptions[selected_column]
+        else:
+            return None  # If the selected column doesn't exist in the dataframe
+    else:
+        # If no column is selected, return the full dictionary of column descriptions
+        return column_descriptions
+
+def describe_columns_weight_(df: pd.DataFrame, selected_column=None, weight=None):
+    """
+    Provides detailed statistics for each column in the DataFrame.
+    For numeric columns: min, max, mean, std, median, percentiles.
+    For categorical columns: mode, unique values, and missing values.
+    If weight is provided, calculations are adjusted by the weight.
+    """
+    column_descriptions = {}
+
+    for column in df.columns:
+        column_desc = {}
+
+        # Check if the column is numeric or categorical
+        if (df[column].dtype in ['float', 'int', 'int64', 'float64']) and (len(df[column].unique()) > 10):
+            column_desc["Type"] = "Numeric"
+        else:
+            column_desc["Type"] = "Categorical"
+
+        column_desc["Unique Values"] = df[column].nunique()
+        column_desc["Missing Values"] = df[column].isnull().sum()
+        column_desc["Missing Values (%)"] = (df[column].isnull().sum() / df.shape[0]) * 100
+        column_desc["Sample Data"] = df[column].head(5).to_list()
+        column_desc["DataType"] = df[column].dtype
+
+        if column_desc["Type"] == "Numeric":
+            if weight is not None:
+                # Weighted calculations
                 column_desc["Min"] = (df[column]).min()
                 column_desc["Max"] = (df[column]).max()
                 #column_desc["Mean"] = df[column].mean()
-                column_desc['weighted'] = weighted_stat(df[column], df[weight], stat_type='mean')
+                column_desc['Mean'] = weighted_stat(df[column], df[weight], stat_type='mean')
                 column_desc["Std"] = weighted_stat(df[column], df[weight], stat_type='std')
                 column_desc["Median"] = weighted_stat(df[column], df[weight], stat_type='median')
                 column_desc["25th Percentile"] = weighted_stat(df[column], df[weight], stat_type='percentile', percentile=25)
